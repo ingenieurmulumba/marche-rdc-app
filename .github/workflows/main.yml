@@ -21,13 +21,19 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Nettoyer settings.gradle
+    - name: Nettoyer settings.gradle et jcenter
       run: |
         SETTINGS_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
         if [ -n "$SETTINGS_PATH" ]; then
           PROJECT_DIR=$(dirname "$SETTINGS_PATH")
           cd "$PROJECT_DIR"
+          # Nettoyage des chemins de répertoire personnalisés
           python3 -c "import os; [open(p, 'w', encoding='utf-8').write('\n'.join([l for l in open(p, encoding='utf-8').read().splitlines() if 'projectDir' not in l and 'settingsDir' not in l]) + '\n') for p in ['settings.gradle', 'settings.gradle.kts'] if os.path.exists(p)]"
+          
+          # Remplacement de jcenter() par mavenCentral()
+          find . -name "*.gradle" -o -name "*.gradle.kts" | while read file; do
+            sed -i 's/jcenter()/mavenCentral()/g' "$file"
+          done
         fi
 
     - name: Force Min SDK to 24
