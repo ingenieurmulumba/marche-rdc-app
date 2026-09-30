@@ -27,18 +27,7 @@ jobs:
         if [ -n "$SETTINGS_PATH" ]; then
           PROJECT_DIR=$(dirname "$SETTINGS_PATH")
           cd "$PROJECT_DIR"
-          python3 -c "
-          for path in ['settings.gradle', 'settings.gradle.kts']:
-              try:
-                  with open(path, 'r', encoding='utf-8') as f:
-                      content = f.read()
-                  lines = content.splitlines()
-                  clean_lines = [l for l in lines if 'projectDir' not in l and 'settingsDir' not in l]
-                  with open(path, 'w', encoding='utf-8') as f:
-                      f.write('\n'.join(clean_lines) + '\n')
-              except FileNotFoundError:
-                  pass
-          "
+          python3 -c "import os; [open(p, 'w', encoding='utf-8').write('\n'.join([l for l in open(p, encoding='utf-8').read().splitlines() if 'projectDir' not in l and 'settingsDir' not in l]) + '\n') for p in ['settings.gradle', 'settings.gradle.kts'] if os.path.exists(p)]"
         fi
 
     - name: Force Min SDK to 24
