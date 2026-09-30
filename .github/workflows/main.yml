@@ -12,13 +12,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Trouver le fichier package.json
-      run: |
-        echo "=== Contenu de la racine ==="
-        ls -la
-        echo "=== Recherche de package.json ==="
-        find . -name "package.json"
-
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -30,20 +23,43 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Install dependencies
-      run: npm install
-
-    - name: Force Min SDK to 24
+    - name: Build App (Node + Gradle)
       run: |
+        echo "=== Recherche de package.json ==="
+        PKG_PATH=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1)
+        if [ -z "$PKG_PATH" ]; then
+          echo "Erreur : package.json introuvable !"
+          exit 1
+        fi
+        PKG_DIR=$(dirname "$PKG_PATH")
+        echo "Dossier de package.json : $PKG_DIR"
+        
+        echo "=== Installation des dépendances npm ==="
+        cd "$PKG_DIR"
+        npm install
+        
+        echo "=== Recherche de gradlew ==="
+        GRADLEW_PATH=$(find /home/runner/work -name "gradlew" | head -n 1)
+        if [ -z "$GRADLEW_PATH" ]; then
+          echo "Erreur : gradlew introuvable !"
+          exit 1
+        fi
+        GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
+        echo "Dossier de gradlew : $GRADLEW_DIR"
+        
+        cd "$GRADLEW_DIR"
+        
+        echo "=== Modification de la version Min SDK à 24 ==="
         if [ -f "variables.gradle" ]; then
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' variables.gradle
         fi
         if [ -f "app/build.gradle" ]; then
           sed -i 's/minSdkVersion [0-9]*/minSdkVersion 24/g' app/build.gradle
+        elif [ -f "build.gradle" ]; then
+          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 24/g' build.gradle
         fi
 
-    - name: Build Android App Bundle (AAB)
-      run: |
+        echo "=== Lancement du build Android (AAB) ==="
         chmod +x gradlew
         ./gradlew bundleRelease
 
@@ -51,4 +67,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: release-aab
-        path: app/build/outputs/bundle/release/app-release.aab
+        path: '**/app/build/outputs/bundle/release/app-release.aab'
