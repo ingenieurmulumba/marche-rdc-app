@@ -21,43 +21,31 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Nettoyer settings.gradle et préparer le build
+    - name: Nettoyer settings.gradle
       run: |
-        echo "=== Recherche du dossier du projet Android ==="
         SETTINGS_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
-        if [ -z "$SETTINGS_PATH" ]; then
-          echo "Erreur : settings.gradle introuvable !"
-          exit 1
+        if [ -n "$SETTINGS_PATH" ]; then
+          PROJECT_DIR=$(dirname "$SETTINGS_PATH")
+          cd "$PROJECT_DIR"
+          python3 -c "
+          for path in ['settings.gradle', 'settings.gradle.kts']:
+              try:
+                  with open(path, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  lines = content.splitlines()
+                  clean_lines = [l for l in lines if 'projectDir' not in l and 'settingsDir' not in l]
+                  with open(path, 'w', encoding='utf-8') as f:
+                      f.write('\n'.join(clean_lines) + '\n')
+              except FileNotFoundError:
+                  pass
+          "
         fi
-        PROJECT_DIR=$(dirname "$SETTINGS_PATH")
-        echo "Dossier trouvé : $PROJECT_DIR"
-        
-        cd "$PROJECT_DIR"
-        
-        echo "=== Nettoyage avancé de settings.gradle via Python ==="
-        python3 -c "
-        import re
-        for path in ['settings.gradle', 'settings.gradle.kts']:
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                print(f'--- Avant nettoyage ({path}) ---')
-                print(content)
-                
-                # Supprime toute ligne ou instruction contenant projectDir
-                lines = content.splitlines()
-                clean_lines = [l for l in lines if 'projectDir' not in l and 'settingsDir' not in l]
-                
-                final_content = '\n'.join(clean_lines) + '\n'
-                with open(path, 'w', encoding='utf-8') as f:
-                    f.write(final_content)
-                print(f'--- Après nettoyage ({path}) ---')
-                print(final_content)
-            except FileNotFoundError:
-                pass
-        "
 
-        echo "=== Modification de la version Min SDK à 24 ==="
+    - name: Force Min SDK to 24
+      run: |
+        SETTINGS_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
+        PROJECT_DIR=$(dirname "$SETTINGS_PATH")
+        cd "$PROJECT_DIR"
         if [ -f "variables.gradle" ]; then
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' variables.gradle
         fi
@@ -67,8 +55,12 @@ jobs:
           sed -i 's/minSdkVersion [0-9]*/minSdkVersion 24/g' build.gradle
         fi
 
-        echo "=== Lancement du build Gradle ==="
-        gradle bundleRelease
+    - name: Build Android App Bundle (AAB)
+      run: |
+        SETTINGS_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
+        PROJECT_DIR=$(dirname "$SETTINGS_PATH")
+        cd "$PROJECT_DIR"
+        gradle bundleRelease --no-daemon
 
     - name: Upload AAB Artifact
       uses: actions/upload-artifact@v4
