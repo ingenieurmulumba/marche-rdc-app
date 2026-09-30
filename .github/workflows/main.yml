@@ -21,18 +21,28 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Fix settings.gradle absolute paths
+    - name: Nettoyer settings.gradle et préparer le build
       run: |
+        echo "=== Recherche du dossier du projet Android ==="
+        SETTINGS_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
+        if [ -z "$SETTINGS_PATH" ]; then
+          echo "Erreur : settings.gradle introuvable !"
+          exit 1
+        fi
+        PROJECT_DIR=$(dirname "$SETTINGS_PATH")
+        echo "Dossier trouvé : $PROJECT_DIR"
+        
+        cd "$PROJECT_DIR"
+        
+        echo "=== Suppression des chemins personnalisés dans settings.gradle ==="
         if [ -f "settings.gradle" ]; then
-          sed -i '/project(\x27:app\x27)\.projectDir/d' settings.gradle
-          sed -i '/project(":app").projectDir/d' settings.gradle
+          sed -i '/projectDir/d' settings.gradle
         fi
         if [ -f "settings.gradle.kts" ]; then
-          sed -i '/project(":app").projectDir/d' settings.gradle.kts
+          sed -i '/projectDir/d' settings.gradle.kts
         fi
 
-    - name: Force Min SDK to 24
-      run: |
+        echo "=== Modification de la version Min SDK à 24 ==="
         if [ -f "variables.gradle" ]; then
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' variables.gradle
         fi
@@ -42,8 +52,8 @@ jobs:
           sed -i 's/minSdkVersion [0-9]*/minSdkVersion 24/g' build.gradle
         fi
 
-    - name: Build Android App Bundle (AAB)
-      run: gradle bundleRelease
+        echo "=== Lancement du build Gradle ==="
+        gradle bundleRelease
 
     - name: Upload AAB Artifact
       uses: actions/upload-artifact@v4
