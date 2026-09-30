@@ -34,17 +34,25 @@ jobs:
         
         cd "$PROJECT_DIR"
         
-        echo "=== Suppression des chemins absolus via Python ==="
+        echo "=== Nettoyage avancé de settings.gradle via Python ==="
         python3 -c "
+        import re
         for path in ['settings.gradle', 'settings.gradle.kts']:
             try:
                 with open(path, 'r', encoding='utf-8') as f:
                     content = f.read()
+                print(f'--- Avant nettoyage ({path}) ---')
+                print(content)
+                
+                # Supprime toute ligne ou instruction contenant projectDir
                 lines = content.splitlines()
-                clean_lines = [l for l in lines if 'projectDir' not in l]
+                clean_lines = [l for l in lines if 'projectDir' not in l and 'settingsDir' not in l]
+                
+                final_content = '\n'.join(clean_lines) + '\n'
                 with open(path, 'w', encoding='utf-8') as f:
-                    f.write('\n'.join(clean_lines) + '\n')
-                print(f'Nettoyé avec succès : {path}')
+                    f.write(final_content)
+                print(f'--- Après nettoyage ({path}) ---')
+                print(final_content)
             except FileNotFoundError:
                 pass
         "
