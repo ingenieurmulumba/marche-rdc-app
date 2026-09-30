@@ -26,29 +26,17 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Install Capacitor CLI and Android
-      run: npm install @capacitor/cli @capacitor/android
-
-    - name: Build web assets
-      run: npm run build
-
-    - name: Initialize Android (Capacitor)
-      run: |
-        npx cap add android
-        npx cap sync android
-
     - name: Force Min SDK to 24
       run: |
-        if [ -f "android/variables.gradle" ]; then
-          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle
+        if [ -f "variables.gradle" ]; then
+          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' variables.gradle
         fi
-        if [ -f "android/app/build.gradle" ]; then
-          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 24/g' android/app/build.gradle
+        if [ -f "app/build.gradle" ]; then
+          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 24/g' app/build.gradle
         fi
 
     - name: Build Android App Bundle (AAB)
       run: |
-        cd android
         chmod +x gradlew
         ./gradlew bundleRelease
 
@@ -56,4 +44,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: release-aab
-        path: android/app/build/outputs/bundle/release/app-release.aab
+        path: app/build/outputs/bundle/release/app-release.aab
