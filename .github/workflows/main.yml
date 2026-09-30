@@ -34,13 +34,20 @@ jobs:
         
         cd "$PROJECT_DIR"
         
-        echo "=== Suppression des chemins personnalisés dans settings.gradle ==="
-        if [ -f "settings.gradle" ]; then
-          sed -i '/projectDir/d' settings.gradle
-        fi
-        if [ -f "settings.gradle.kts" ]; then
-          sed -i '/projectDir/d' settings.gradle.kts
-        fi
+        echo "=== Suppression des chemins absolus via Python ==="
+        python3 -c "
+        for path in ['settings.gradle', 'settings.gradle.kts']:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                lines = content.splitlines()
+                clean_lines = [l for l in lines if 'projectDir' not in l]
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write('\n'.join(clean_lines) + '\n')
+                print(f'Nettoyé avec succès : {path}')
+            except FileNotFoundError:
+                pass
+        "
 
         echo "=== Modification de la version Min SDK à 24 ==="
         if [ -f "variables.gradle" ]; then
