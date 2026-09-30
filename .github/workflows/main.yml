@@ -18,38 +18,8 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
-    - name: Build App (Node + Gradle)
+    - name: Force Min SDK to 24
       run: |
-        echo "=== Recherche de package.json ==="
-        PKG_PATH=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1)
-        if [ -z "$PKG_PATH" ]; then
-          echo "Erreur : package.json introuvable !"
-          exit 1
-        fi
-        PKG_DIR=$(dirname "$PKG_PATH")
-        echo "Dossier de package.json : $PKG_DIR"
-        
-        echo "=== Installation des dépendances npm ==="
-        cd "$PKG_DIR"
-        npm install
-        
-        echo "=== Recherche de gradlew ==="
-        GRADLEW_PATH=$(find /home/runner/work -name "gradlew" | head -n 1)
-        if [ -z "$GRADLEW_PATH" ]; then
-          echo "Erreur : gradlew introuvable !"
-          exit 1
-        fi
-        GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
-        echo "Dossier de gradlew : $GRADLEW_DIR"
-        
-        cd "$GRADLEW_DIR"
-        
-        echo "=== Modification de la version Min SDK à 24 ==="
         if [ -f "variables.gradle" ]; then
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' variables.gradle
         fi
@@ -59,7 +29,8 @@ jobs:
           sed -i 's/minSdkVersion [0-9]*/minSdkVersion 24/g' build.gradle
         fi
 
-        echo "=== Lancement du build Android (AAB) ==="
+    - name: Build Android App Bundle (AAB)
+      run: |
         chmod +x gradlew
         ./gradlew bundleRelease
 
