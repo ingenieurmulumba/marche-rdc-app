@@ -7,9 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: marche-rdc-app
 
     steps:
     - name: Checkout code
@@ -47,4 +44,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: release-aab
-        path: marche-rdc-app/app/build/outputs/bundle/release/app-release.aab
+        path: app/build/outputs/bundle/release/app-release.aab
